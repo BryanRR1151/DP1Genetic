@@ -22,8 +22,8 @@ public class Vehicle {
     public int carry;
     public Vehicle(String type){
         this.location = new Node();
-        this.location.x = 0;
-        this.location.y = 0;
+        this.location.x = 45;
+        this.location.y = 30;
         this.state = 0;
         this.step = 0;
         if(type == "Carro"){

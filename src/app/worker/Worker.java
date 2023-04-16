@@ -3,15 +3,19 @@ package app.worker;
 import app.model.*;
 import app.model.Package;
 import app.planner.Genetic;
+
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.io.File;
+import java.util.Scanner;
 
 public class Worker {
     public ArrayList<Integer> checkPackage(ArrayList<Package> packages, int hour, int minute){
         ArrayList<Integer> list = new ArrayList<>();
-        String time = String.format("%02d", hour) + ":" + String.format("%02d", minute);
+        int time = hour*60 + minute;
         int i = 0;
         for(Package p : packages){
-            if(p.time.equals(time)){
+            if(p.time == time){
                 list.add(i);
             }
             i++;
@@ -31,56 +35,129 @@ public class Worker {
             }
         }
     }
+
+    public ArrayList<Package> importPackages() throws FileNotFoundException {
+        File inputDirectory;
+        ArrayList<Package> packages = new ArrayList<>();
+        inputDirectory = new File(System.getProperty("user.dir") + "/input/packages");
+        String[] inputFiles = inputDirectory.list((dir, name) -> new File(dir, name).isFile());
+        for (int i = 0; i < inputFiles.length; i++) {
+            File file = new File(inputDirectory + "/" + inputFiles[i]);
+            Scanner scan = new Scanner(file);
+            while (scan.hasNextLine()) {
+                String orderStr = scan.nextLine();
+                String[] order = orderStr.split(",");
+                int posX = Integer.parseInt(order[1]);
+                int posY = Integer.parseInt(order[2]);
+                int demand = Integer.parseInt(order[3]);
+                String readyTime = order[0];
+                String[] dateSections = readyTime.split(":");
+                int startDate = Integer.parseInt(dateSections[0])*60 + Integer.parseInt(dateSections[1]);
+                int dueDate = startDate + Integer.parseInt(order[5])*60;
+                int idCustomer = Integer.parseInt(order[4]);
+
+                Package pack = new Package();
+                pack.time = startDate;
+                pack.deadline = dueDate;
+                pack.location.x = posX;
+                pack.location.y = posY;
+                pack.demand = demand;
+                pack.idCustomer = idCustomer;
+                packages.add(pack);
+            }
+            scan.close();
+        }
+        return packages;
+    }
+    public ArrayList<Vehicle> importVehicles() throws FileNotFoundException {
+        File inputDirectory;
+        ArrayList<Vehicle> vehicles = new ArrayList<>();
+        inputDirectory = new File(System.getProperty("user.dir") + "/input/vehicles");
+        String[] inputFiles = inputDirectory.list((dir, name) -> new File(dir, name).isFile());
+        for (int i = 0; i < inputFiles.length; i++) {
+            File file = new File(inputDirectory + "/" + inputFiles[i]);
+            Scanner scan = new Scanner(file);
+            while (scan.hasNextLine()) {
+                String vehicleStr = scan.nextLine();
+                String[] v = vehicleStr.split(",");
+                Vehicle vehicle = new Vehicle(v[3]);
+                vehicle.id = Integer.parseInt(v[0]);
+                vehicle.state = 0;
+                vehicle.type = v[3];
+                vehicles.add(vehicle);
+            }
+            scan.close();
+        }
+        return vehicles;
+    }
+
+    public ArrayList<Blockage> importBlockages() throws FileNotFoundException {
+        File inputDirectory;
+        ArrayList<Blockage> blockages = new ArrayList<>();
+        inputDirectory = new File(System.getProperty("user.dir") + "/input/blockages");
+        String[] inputFiles = inputDirectory.list((dir, name) -> new File(dir, name).isFile());
+        for (int i = 0; i < inputFiles.length; i++) {
+            File file = new File(inputDirectory + "/" + inputFiles[i]);
+            Scanner scan = new Scanner(file);
+            while (scan.hasNextLine()) {
+                String blockStr = scan.nextLine();
+                String[] b = blockStr.split(",");
+                Blockage blockage = new Blockage();
+                for (int j = 1; j < b.length-2; j+=2) {
+                    blockage.from.x = Integer.parseInt(b[j]);
+                    blockage.from.y = Integer.parseInt(b[j+1]);
+                    blockage.to.x = Integer.parseInt(b[j+2]);
+                    blockage.to.y = Integer.parseInt(b[j+3]);
+                }
+                blockages.add(blockage);
+            }
+            scan.close();
+        }
+        return blockages;
+    }
     public void Simulate(){
         Environment env = new Environment();
         Genetic genetic = new Genetic();
         Vehicle.capacity1 = 40;
         Vehicle.speed2 = 30;
-        ArrayList<Vehicle> vehicles = new ArrayList<>();
-        Vehicle v = new Vehicle("Carro");
-        v.id = 1;
-        v.type = "Moto";
-        v.state = 0;
-        vehicles.add(v);
         env.date = "15/04/23";
-        env.time = "00:00";
+        env.time = 0;
         Node node;
         Solution solution = new Solution();
         int i, j, k = 0, p = 0;
         boolean start = false;
-        for(i=-8; i < 9; i++){
-            for(j=-8; j<9; j++){
+        for(i=0; i < 70; i++){
+            for(j=0; j<50; j++){
                 node = new Node();
                 node.x = i;
                 node.y = j;
                 env.nodes.add(node);
             }
         }
-        Blockage block = new Blockage();
-        block.from.x = 0;
-        block.from.y = 0;
-        block.to.x = 1;
-        block.to.y = 0;
-        env.blockages.add(block);
-        block = new Blockage();
-        block.from.x = 0;
-        block.from.y = 0;
-        block.to.x = 0;
-        block.to.y = 1;
-        env.blockages.add(block);
-        block = new Blockage();
-        block.from.x = 0;
-        block.from.y = 0;
-        block.to.x = -1;
-        block.to.y = 0;
-        env.blockages.add(block);
-        Package pack = new Package();
-        pack.time = "00:03";
-        pack.location.x = 8;
-        pack.location.y = -8;
+
         ArrayList<Integer> list = new ArrayList<>();
         ArrayList<Package> packages = new ArrayList<>();
-        packages.add(pack);
+        try {
+            packages = importPackages();
+        } catch(Exception ex) {
+            System.out.println("Error with file importing");
+            System.exit(0);
+        }
+        ArrayList<Vehicle> vehicles = new ArrayList<>();
+        try {
+            vehicles = importVehicles();
+        } catch(Exception ex) {
+            System.out.println("Error with file importing");
+            System.exit(0);
+        }
+        ArrayList<Blockage> blockages = new ArrayList<>();
+        try {
+            blockages = importBlockages();
+            env.blockages = blockages;
+        } catch(Exception ex) {
+            System.out.println("Error with file importing");
+            System.exit(0);
+        }
         //Esto esta simulando un dia
         for (i=0; i<1; i++){
             for (j=0; j<30; j++){
