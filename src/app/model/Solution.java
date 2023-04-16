@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 public class Solution implements Comparable<Solution>{
     public ArrayList<Chrom> chroms;
+    public int vehicle;
     public Solution() {
         this.chroms = new ArrayList<>();
     }
@@ -22,6 +23,6 @@ public class Solution implements Comparable<Solution>{
         //  Ascendente
         return (int)(this.fitness() - solution.fitness());
         //  Descendente
-        // return compareage-this.studentage;
+        // return (int)(solution.fitness() - this.fitness());
     }
 }

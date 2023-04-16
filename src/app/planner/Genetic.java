@@ -66,32 +66,33 @@ public class Genetic {
     }
     public Solution getNewSolution(Environment env, Node from, Node to){
         Solution solution = new Solution();
+        Node localFrom = new Node(from);
         Chrom chrom;
         int num;
         while (true) {
-            if(!from.equals(to)) {
+            if(!localFrom.equals(to)) {
                 chrom = new Chrom();
-                chrom.from = new Node(from);
-                chrom.to = new Node(from);
-                num = rollValidMove(env, from);
+                chrom.from = new Node(localFrom);
+                chrom.to = new Node(localFrom);
+                num = rollValidMove(env, localFrom);
                 switch (num){
                     case 0:{ //Derecha
-                        from.x++;
+                        localFrom.x++;
                         chrom.to.x++;
                         break;
                     }
                     case 1: { //Izquierda
-                        from.x--;
+                        localFrom.x--;
                         chrom.to.x--;
                         break;
                     }
                     case 2: { //Arriba
-                        from.y++;
+                        localFrom.y++;
                         chrom.to.y++;
                         break;
                     }
                     case 3: { //Abajo
-                        from.y--;
+                        localFrom.y--;
                         chrom.to.y--;
                         break;
                     }
@@ -104,16 +105,27 @@ public class Genetic {
         }
         return solution;
     }
+    public int pickVehicle(ArrayList<Vehicle> vehicles, Package pack){
+        int i = 0, j = 0;
+        int best = vehicles.get(0).location.distance(pack.location), newBest;
+        for(Vehicle v : vehicles) {
+            newBest = v.location.distance(pack.location);
+            if(best > newBest && v.carry > 0 && (v.state == 0 || v.state == 2)){
+                best = newBest;
+                j = i;
+            }
+            i++;
+        }
+        return j;
+    }
     public ArrayList<Solution> initPopulation(Environment env, ArrayList<Vehicle> vehicles, Package pack){
         ArrayList<Solution> population = new ArrayList<>();
         Solution solution;
-        Vehicle vehicle = new Vehicle();
-        vehicle.location = new Node();
-        int i;
+        int i, v;
         for(i=0; i < POPULATION; i++){
-            vehicle.location.x = 0;
-            vehicle.location.y = 0;
-            solution = getNewSolution(env, vehicle.location, pack.location);
+            v = pickVehicle(vehicles, pack);
+            solution = getNewSolution(env, vehicles.get(v).location, pack.location);
+            solution.vehicle = v;
             population.add(solution);
         }
         return population;

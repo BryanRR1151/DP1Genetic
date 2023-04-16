@@ -1,5 +1,7 @@
 package app.model;
 
+import static java.lang.Math.abs;
+
 public class Node {
     public int x;
     public int y;
@@ -12,7 +14,10 @@ public class Node {
         this.y = n.y;
         this.state = n.state;
     }
-
+    public int distance(Node n) {
+        int d = abs(this.x - n.x) + abs(this.y - n.y);
+        return d;
+    }
     @Override
     public boolean equals(Object obj) {
         boolean eq = false;
