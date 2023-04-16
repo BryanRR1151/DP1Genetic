@@ -24,6 +24,24 @@ public class Worker {
                 env.nodes.add(node);
             }
         }
+        Blockage block = new Blockage();
+        block.from.x = 0;
+        block.from.y = 0;
+        block.to.x = 1;
+        block.to.y = 0;
+        env.blockages.add(block);
+        block = new Blockage();
+        block.from.x = 0;
+        block.from.y = 0;
+        block.to.x = 0;
+        block.to.y = 1;
+        env.blockages.add(block);
+        block = new Blockage();
+        block.from.x = 0;
+        block.from.y = 0;
+        block.to.x = -1;
+        block.to.y = 0;
+        env.blockages.add(block);
         //Esto esta simulando un dia
         for (i=0; i<1; i++){
             for (j=0; j<30; j++){

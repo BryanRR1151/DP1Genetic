@@ -7,12 +7,21 @@ public class Solution implements Comparable<Solution>{
     public Solution() {
         this.chroms = new ArrayList<>();
     }
+    public double fitness() {
+        return chroms.size();
+    }
+    public boolean better(Solution sol) {
+        boolean better = false;
+        if (this.fitness() < sol.fitness()){
+            better = true;
+        }
+        return better;
+    }
     @Override
     public int compareTo(Solution solution) {
-        //  For Ascending order
-        return this.chroms.size() - solution.chroms.size();
-
-        // For Descending order do like this
+        //  Ascendente
+        return (int)(this.fitness() - solution.fitness());
+        //  Descendente
         // return compareage-this.studentage;
-        }
+    }
 }

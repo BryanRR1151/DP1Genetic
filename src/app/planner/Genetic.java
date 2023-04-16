@@ -3,13 +3,28 @@ package app.planner;
 import app.model.*;
 import app.model.Package;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Random;
-import java.util.function.Predicate;
-
 
 public class Genetic {
+    static final int GENERATIONS = 100;
+    static final int POPULATION = 100;
+    static final int PARENTS = 50;
+    static final double MUTATE_CHANCE = 0.5;
+    public boolean notBlocked(Environment env, Node from, Node to) {
+        boolean valid = true;
+        for(Blockage b : env.blockages) {
+            //Basicamente, busca que no esten en el arreglo de blockeos
+            //Es doble sentido
+            //Si no esta, falso, se niega a verdadero
+            //Si esta, verdadero, se niega a falso y se rompe la iteracion
+            valid = !((b.from.equals(from) && b.to.equals(to) || (b.from.equals(to) && b.to.equals(from))));
+            if(!valid){
+                break;
+            }
+        }
+        return valid;
+    }
     public boolean checkValid(Environment env, Node node){
         boolean valid = false;
         for(Node n : env.nodes){
@@ -19,7 +34,7 @@ public class Genetic {
         }
         return valid;
     }
-    public int rollValid(Environment env, Node location){
+    public int rollValidMove(Environment env, Node location){
         Random rand = new Random();
         Node node;
         boolean valid = false;
@@ -45,66 +60,68 @@ public class Genetic {
                     break;
                 }
             }
-            valid = checkValid(env, node);
+            valid = checkValid(env, node) && notBlocked(env, location, node);
         }
-
         return num;
+    }
+    public Solution getNewSolution(Environment env, Node from, Node to){
+        Solution solution = new Solution();
+        Chrom chrom;
+        int num;
+        while (true) {
+            if(!from.equals(to)) {
+                chrom = new Chrom();
+                chrom.from = new Node(from);
+                chrom.to = new Node(from);
+                num = rollValidMove(env, from);
+                switch (num){
+                    case 0:{ //Derecha
+                        from.x++;
+                        chrom.to.x++;
+                        break;
+                    }
+                    case 1: { //Izquierda
+                        from.x--;
+                        chrom.to.x--;
+                        break;
+                    }
+                    case 2: { //Arriba
+                        from.y++;
+                        chrom.to.y++;
+                        break;
+                    }
+                    case 3: { //Abajo
+                        from.y--;
+                        chrom.to.y--;
+                        break;
+                    }
+                }
+                chrom.direction = num;
+                solution.chroms.add(chrom);
+            }else {
+                break;
+            }
+        }
+        return solution;
     }
     public ArrayList<Solution> initPopulation(Environment env, ArrayList<Vehicle> vehicles, Package pack){
         ArrayList<Solution> population = new ArrayList<>();
         Solution solution;
-        Chrom chrom;
         Vehicle vehicle = new Vehicle();
         vehicle.location = new Node();
-        int i, num;
-        for(i=0; i < 100; i++){
+        int i;
+        for(i=0; i < POPULATION; i++){
             vehicle.location.x = 0;
             vehicle.location.y = 0;
-            solution = new Solution();
-            while (true){
-                if(!vehicle.location.equals(pack.location)){
-                    chrom = new Chrom();
-                    chrom.from.x = vehicle.location.x;
-                    chrom.from.y = vehicle.location.y;
-                    chrom.to.x = chrom.from.x;
-                    chrom.to.y = chrom.from.y;
-                    num = rollValid(env, vehicle.location);
-                    switch (num){
-                        case 0:{ //Derecha
-                            vehicle.location.x++;
-                            chrom.to.x++;
-                            break;
-                        }
-                        case 1: { //Izquierda
-                            vehicle.location.x--;
-                            chrom.to.x--;
-                            break;
-                        }
-                        case 2: { //Arriba
-                            vehicle.location.y++;
-                            chrom.to.y++;
-                            break;
-                        }
-                        case 3: { //Abajo
-                            vehicle.location.y--;
-                            chrom.to.y--;
-                            break;
-                        }
-                    }
-                    chrom.direction = num;
-                    solution.chroms.add(chrom);
-                }else {
-                    population.add(solution);
-                    break;
-                }
-            }
+            solution = getNewSolution(env, vehicle.location, pack.location);
+            population.add(solution);
         }
         return population;
     }
     public Solution getFit(ArrayList<Solution> population) {
         Solution best = population.get(0);
         for(Solution s : population){
-            if(best.chroms.size() > s.chroms.size()){
+            if(s.better(best)){
                 best.chroms = new ArrayList<>();
                 best.chroms.addAll(s.chroms);
             }
@@ -119,32 +136,38 @@ public class Genetic {
         for(i=1; i < fsize - 1; i++){
             for(j=1; j < msize - 1; j++){
                 if(father.chroms.get(i).to.equals(mother.chroms.get(j).to) && father.chroms.get(i).from.equals(mother.chroms.get(j).from)){
-                        child1.chroms.addAll(father.chroms.subList(0, i));
-                        child1.chroms.addAll(mother.chroms.subList(j, msize));
-                        child2.chroms.addAll(mother.chroms.subList(0, j));
-                        child2.chroms.addAll(father.chroms.subList(i, fsize));
-                        children.add(child1);
-                        children.add(child2);
-                        return children;
+                    child1.chroms.addAll(father.chroms.subList(0, i));
+                    child1.chroms.addAll(mother.chroms.subList(j, msize));
+                    child2.chroms.addAll(mother.chroms.subList(0, j));
+                    child2.chroms.addAll(father.chroms.subList(i, fsize));
+                    children.add(child1);
+                    children.add(child2);
+                    return children;
                 }
             }
         }
         return null;
+    }
+    public int rollValidMother(int f) {
+        Random rand = new Random();
+        int m;
+        while (true) {
+            m = rand.nextInt(PARENTS);
+            if (m != f) {
+                break;
+            }
+        }
+        return m;
     }
     public ArrayList<Solution> crossPopulation(ArrayList<Solution> population){
         ArrayList<Solution> newPopulation = new ArrayList<>();
         ArrayList<Solution> children;
         Random rand = new Random();
         int i, f, m;
-        for(i=0; i<50; i++){
+        for(i = 0 ; i < POPULATION/2; i++){
             while (true){
-                f = rand.nextInt(75);
-                while(true){
-                    m = rand.nextInt(75);
-                    if(m != f){
-                        break;
-                    }
-                }
+                f = rand.nextInt(PARENTS);
+                m = rollValidMother(f);
                 children = cross(population.get(f), population.get(m));
                 if(children != null){
                     newPopulation.add(children.get(0));
@@ -155,61 +178,31 @@ public class Genetic {
         }
         return newPopulation;
     }
+    public int rollValidIndex(int cap){
+        Random rand = new Random();
+        int i;
+        while (true) {
+            i = rand.nextInt(cap - 1);
+            if(i > 0){
+                break;
+            }
+        }
+        return i;
+    }
     public ArrayList<Solution> mutate (ArrayList<Solution> population, Environment env, Package pack){
         ArrayList<Solution> newPopulation = new ArrayList<>();
         newPopulation.addAll(population);
         Solution newSolution;
         Node node;
-        Chrom chrom;
         Random rand = new Random();
-        int i = 0, num;
+        int i;
         for(Solution s : newPopulation){
-            if(rand.nextInt(100) < 5){
+            if(rand.nextInt(10000) < 100 * MUTATE_CHANCE){
                 newSolution = new Solution();
-                while(true){
-                    i = rand.nextInt(s.chroms.size()-1);
-                    if(i > 0){
-                        break;
-                    }
-                }
+                i = rollValidIndex(s.chroms.size());
                 newSolution.chroms.addAll(s.chroms.subList(0, i));
                 node = new Node(newSolution.chroms.get(i-1).to);
-                while (true){
-                    if(!node.equals(pack.location)){
-                        chrom = new Chrom();
-                        chrom.from.x = node.x;
-                        chrom.from.y = node.y;
-                        chrom.to.x = chrom.from.x;
-                        chrom.to.y = chrom.from.y;
-                        num = rollValid(env, node);
-                        switch (num){
-                            case 0:{ //Derecha
-                                node.x++;
-                                chrom.to.x++;
-                                break;
-                            }
-                            case 1: { //Izquierda
-                                node.x--;
-                                chrom.to.x--;
-                                break;
-                            }
-                            case 2: { //Arriba
-                                node.y++;
-                                chrom.to.y++;
-                                break;
-                            }
-                            case 3: { //Abajo
-                                node.y--;
-                                chrom.to.y--;
-                                break;
-                            }
-                        }
-                        chrom.direction = num;
-                        newSolution.chroms.add(chrom);
-                    }else {
-                        break;
-                    }
-                }
+                newSolution.chroms.addAll(getNewSolution(env, node, pack.location).chroms);
             }
         }
         return newPopulation;
@@ -217,21 +210,22 @@ public class Genetic {
     public ArrayList<Solution> getParents (ArrayList<Solution> population){
         Collections.sort(population);
         ArrayList<Solution> parents = new ArrayList<>();
-        parents.addAll(population.subList(0, 75));
+        parents.addAll(population.subList(0, PARENTS));
         return parents;
     }
     public Solution getBestRoute(Environment env, ArrayList<Vehicle> vehicles, Package pack) {
-        ArrayList<Solution> population = initPopulation(env, vehicles, pack);
-        Solution best = getFit(population);
-        ArrayList<Solution> parents = getParents(population);
+        ArrayList<Solution> parents;
         ArrayList<Solution> newPopulation;
         Solution newBest;
+        ArrayList<Solution> population = initPopulation(env, vehicles, pack);
+        Solution best = getFit(population);
         int i;
-        for(i=0; i < 100; i++){
+        for(i =0 ; i < GENERATIONS; i++){
+            parents = getParents(population);
             newPopulation = crossPopulation(parents);
             newPopulation = mutate(newPopulation, env, pack);
             newBest = getFit(newPopulation);
-            if(best.chroms.size() > newBest.chroms.size()){
+            if(newBest.better(best)){
                 best = newBest;
                 population = newPopulation;
             }
