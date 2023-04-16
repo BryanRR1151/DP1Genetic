@@ -10,15 +10,14 @@ public class Worker {
     public void Simulate(){
         Environment env = new Environment();
         Genetic genetic = new Genetic();
-        env.nodes = new ArrayList<Node>();
         env.date = "15/04/23";
         env.time = "00:00";
         Node node;
         Solution solution = new Solution();
-        int i, j, k = 0;
+        int i, j, k = 0, x = 0, y = 0, nx = 0, ny = 0;
         boolean start = false;
-        for(i=-1; i < 2; i++){
-            for(j=-1; j<2; j++){
+        for(i=-8; i < 9; i++){
+            for(j=-8; j<9; j++){
                 node = new Node();
                 node.x = i;
                 node.y = j;
@@ -27,14 +26,13 @@ public class Worker {
         }
         //Esto esta simulando un dia
         for (i=0; i<1; i++){
-            for (j=0; j<6; j++){
+            for (j=0; j<30; j++){
                 System.out.println("Son las " + i + ":" + j);
                 //se tiene un pedido que se registro a esta hora
                 if(i == 0 && j == 3){
                     Package pack = new Package();
-                    pack.location = new Node();
-                    pack.location.x = 1;
-                    pack.location.y = -1;
+                    pack.location.x = 8;
+                    pack.location.y = -8;
                     solution = genetic.getBestRoute(env,null,pack);
                     System.out.println("Se recibio un paquete");
                     start = true;

@@ -5,4 +5,7 @@ public class Package {
     public String time;
     public String deadline;
     public String date;
+    public Package(){
+        this.location = new Node();
+    }
 }

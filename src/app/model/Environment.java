@@ -5,4 +5,7 @@ public class Environment {
     public ArrayList<Node> nodes;
     public String date;
     public String time;
+    public Environment() {
+        this.nodes = new ArrayList<>();
+    }
 }
