@@ -39,19 +39,19 @@ public class Worker {
                     System.out.println(v.type + " #" + v.id + ": (" + v.plan.chroms.get(v.step).from.x + ", " + v.plan.chroms.get(v.step).from.y + ") se fue a (" + v.location.x + ", " + v.location.y + ") - " + state);
                     v.step++;
                     if(v.step == v.plan.chroms.size()){
-                        start = new Node();
+                        v.carry -= v.pack.demand;
                         System.out.println(v.type + " #" + v.id + ": Llegó a su destino");
-                        start.x = 0;
-                        start.y = 0;
-                        Package p = new Package();
-                        p.location = start;
                         if(v.state != 2){
+                            Package p = new Package();
+                            p.location.x = 0;
+                            p.location.y = 0;
                             newVehicles = new ArrayList<>();
                             newVehicles.add(v);
                             v.state = 2;
                             v.plan = genetic.getBestRoute(env, newVehicles, p);
                             v.step = 0;
                         }else {
+                            v.refill();
                             v.state = 0;
                         }
                     }
@@ -108,7 +108,7 @@ public class Worker {
                 vehicle.id = Integer.parseInt(v[0]);
                 vehicle.state = 0;
                 vehicle.type = v[3];
-                vehicle.carry = 50;
+                vehicle.carry = Integer.parseInt(v[1]);
                 vehicles.add(vehicle);
             }
             scan.close();
@@ -190,13 +190,18 @@ public class Worker {
         for (i=0; i<DIA * 1.07; i++){
                 System.out.println("Son las " + timeString(i));
                 list = checkPackage(packages, i);
-                for(int x : list) {
+                for(int x=0; x < list.size(); x++) {
                     System.out.println("Se recibio un pedido");
-                    solution = genetic.getBestRoute(env, vehicles, packages.get(x));
+                    solution = genetic.getBestRoute(env, vehicles, packages.get(list.get(x)));
                     System.out.println("Se encontro una solucion de " + solution.chroms.size() + " pasos");
                     vehicles.get(solution.vehicle).plan = solution;
                     vehicles.get(solution.vehicle).state = 1;
                     vehicles.get(solution.vehicle).step = 0;
+                    vehicles.get(solution.vehicle).pack = new Package(packages.get(list.get(x)));
+                    packages.get(list.get(x)).demand -= vehicles.get(solution.vehicle).carry;
+                    if(packages.get(list.get(x)).demand > 0){
+                        list.add(list.get(x));
+                    }
                 }
                 moveVehicles(env, vehicles);
         }
