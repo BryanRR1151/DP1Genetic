@@ -9,8 +9,9 @@ import java.util.Random;
 public class Genetic {
     static final int GENERATIONS = 100;
     static final int POPULATION = 100;
-    static final int PARENTS = 50;
-    static final double MUTATE_CHANCE = 0.5;
+    static final int PARENTS = POPULATION*50/100;
+    static final double MUTATE_CHANCE = 20;
+    static final double IGNORE_CHANCE = 10;
     public boolean notBlocked(Environment env, Node from, Node to) {
         boolean valid = true;
         for(Blockage b : env.blockages) {
@@ -34,7 +35,7 @@ public class Genetic {
         }
         return valid;
     }
-    public int rollValidMove(Environment env, Node location){
+    public int rollValidMove(Environment env, Node location, Node to){
         Random rand = new Random();
         Node node;
         boolean valid = false;
@@ -60,7 +61,7 @@ public class Genetic {
                     break;
                 }
             }
-            valid = checkValid(env, node) && notBlocked(env, location, node);
+            valid = checkValid(env, node) && notBlocked(env, location, node) && (node.distance(to) < location.distance(to) || rand.nextInt(10000) < IGNORE_CHANCE*100);
         }
         return num;
     }
@@ -74,7 +75,7 @@ public class Genetic {
                 chrom = new Chrom();
                 chrom.from = new Node(localFrom);
                 chrom.to = new Node(localFrom);
-                num = rollValidMove(env, localFrom);
+                num = rollValidMove(env, localFrom, to);
                 switch (num){
                     case 0:{ //Derecha
                         localFrom.x++;
@@ -106,11 +107,11 @@ public class Genetic {
         return solution;
     }
     public int pickVehicle(ArrayList<Vehicle> vehicles, Package pack){
-        int i = 0, j = 0;
-        int best = vehicles.get(0).location.distance(pack.location), newBest;
+        int i = 0, j = -1;
+        int best = 240, newBest;
         for(Vehicle v : vehicles) {
             newBest = v.location.distance(pack.location);
-            if(best > newBest && v.carry > 0 && (v.state == 0 || v.state == 2)){
+            if(best > newBest && (v.state == 0 || v.state == 2)){
                 best = newBest;
                 j = i;
             }
@@ -122,8 +123,8 @@ public class Genetic {
         ArrayList<Solution> population = new ArrayList<>();
         Solution solution;
         int i, v;
+        v = pickVehicle(vehicles, pack);
         for(i=0; i < POPULATION; i++){
-            v = pickVehicle(vehicles, pack);
             solution = getNewSolution(env, vehicles.get(v).location, pack.location);
             solution.vehicle = v;
             population.add(solution);
@@ -150,8 +151,10 @@ public class Genetic {
                 if(father.chroms.get(i).to.equals(mother.chroms.get(j).to) && father.chroms.get(i).from.equals(mother.chroms.get(j).from)){
                     child1.chroms.addAll(father.chroms.subList(0, i));
                     child1.chroms.addAll(mother.chroms.subList(j, msize));
+                    child1.vehicle = father.vehicle;
                     child2.chroms.addAll(mother.chroms.subList(0, j));
                     child2.chroms.addAll(father.chroms.subList(i, fsize));
+                    child2.vehicle = father.vehicle;
                     children.add(child1);
                     children.add(child2);
                     return children;
@@ -215,6 +218,7 @@ public class Genetic {
                 newSolution.chroms.addAll(s.chroms.subList(0, i));
                 node = new Node(newSolution.chroms.get(i-1).to);
                 newSolution.chroms.addAll(getNewSolution(env, node, pack.location).chroms);
+                newSolution.vehicle = s.vehicle;
             }
         }
         return newPopulation;

@@ -10,26 +10,50 @@ import java.io.File;
 import java.util.Scanner;
 
 public class Worker {
-    public ArrayList<Integer> checkPackage(ArrayList<Package> packages, int hour, int minute){
+    static final int DIA = 1440;
+    public ArrayList<Integer> checkPackage(ArrayList<Package> packages, int minutes){
         ArrayList<Integer> list = new ArrayList<>();
-        int time = hour*60 + minute;
         int i = 0;
         for(Package p : packages){
-            if(p.time == time){
+            if(p.time == minutes){
                 list.add(i);
             }
             i++;
         }
         return list;
     }
-    public void moveVehicles(ArrayList<Vehicle> vehicles){
+    public void moveVehicles(Environment env, ArrayList<Vehicle> vehicles){
+        Genetic genetic = new Genetic();
+        ArrayList<Vehicle> newVehicles;
+        Node start;
+        String state = "";
         for(Vehicle v : vehicles){
-            if(v.state == 1) {
+            if(v.state == 1 || v.state == 2) {
                 if(v.step < v.plan.chroms.size()){
-                    System.out.println("De (" + v.plan.chroms.get(v.step).from.x + ", " + v.plan.chroms.get(v.step).from.y + ") se fue a (" + v.plan.chroms.get(v.step).to.x + ", " + v.plan.chroms.get(v.step).to.y + ")");
+                    switch (v.state){
+                        case 1: state = "ENTREGANDO"; break;
+                        case 2: state = "REGRESANDO"; break;
+                    }
+                    v.location.x = v.plan.chroms.get(v.step).to.x;
+                    v.location.y = v.plan.chroms.get(v.step).to.y;
+                    System.out.println(v.type + " #" + v.id + ": (" + v.plan.chroms.get(v.step).from.x + ", " + v.plan.chroms.get(v.step).from.y + ") se fue a (" + v.location.x + ", " + v.location.y + ") - " + state);
                     v.step++;
                     if(v.step == v.plan.chroms.size()){
-                        v.state = 2;
+                        start = new Node();
+                        System.out.println(v.type + " #" + v.id + ": Llegó a su destino");
+                        start.x = 0;
+                        start.y = 0;
+                        Package p = new Package();
+                        p.location = start;
+                        if(v.state != 2){
+                            newVehicles = new ArrayList<>();
+                            newVehicles.add(v);
+                            v.state = 2;
+                            v.plan = genetic.getBestRoute(env, newVehicles, p);
+                            v.step = 0;
+                        }else {
+                            v.state = 0;
+                        }
                     }
                 }
             }
@@ -84,6 +108,7 @@ public class Worker {
                 vehicle.id = Integer.parseInt(v[0]);
                 vehicle.state = 0;
                 vehicle.type = v[3];
+                vehicle.carry = 50;
                 vehicles.add(vehicle);
             }
             scan.close();
@@ -115,6 +140,10 @@ public class Worker {
         }
         return blockages;
     }
+    public String timeString(int minutes) {
+        String time = String.format("%02d", (minutes/60) % 24) + ":" + String.format("%02d", minutes % 60);
+        return time;
+    }
     public void Simulate(){
         Environment env = new Environment();
         Genetic genetic = new Genetic();
@@ -123,11 +152,10 @@ public class Worker {
         env.date = "15/04/23";
         env.time = 0;
         Node node;
-        Solution solution = new Solution();
-        int i, j, k = 0, p = 0;
-        boolean start = false;
-        for(i=0; i < 70; i++){
-            for(j=0; j<50; j++){
+        Solution solution;
+        int i, j;
+        for(i=0; i < 71; i++){
+            for(j=0; j < 51; j++){
                 node = new Node();
                 node.x = i;
                 node.y = j;
@@ -135,7 +163,7 @@ public class Worker {
             }
         }
 
-        ArrayList<Integer> list = new ArrayList<>();
+        ArrayList<Integer> list;
         ArrayList<Package> packages = new ArrayList<>();
         try {
             packages = importPackages();
@@ -150,7 +178,7 @@ public class Worker {
             System.out.println("Error with file importing");
             System.exit(0);
         }
-        ArrayList<Blockage> blockages = new ArrayList<>();
+        ArrayList<Blockage> blockages;
         try {
             blockages = importBlockages();
             env.blockages = blockages;
@@ -159,19 +187,18 @@ public class Worker {
             System.exit(0);
         }
         //Esto esta simulando un dia
-        for (i=0; i<1; i++){
-            for (j=0; j<30; j++){
-                System.out.println("Son las " + String.format("%02d", i) + ":" + String.format("%02d", j));
-                list = checkPackage(packages, i, j);
+        for (i=0; i<DIA * 1.07; i++){
+                System.out.println("Son las " + timeString(i));
+                list = checkPackage(packages, i);
                 for(int x : list) {
-                    System.out.println("Se recibio un paquete");
+                    System.out.println("Se recibio un pedido");
                     solution = genetic.getBestRoute(env, vehicles, packages.get(x));
+                    System.out.println("Se encontro una solucion de " + solution.chroms.size() + " pasos");
                     vehicles.get(solution.vehicle).plan = solution;
                     vehicles.get(solution.vehicle).state = 1;
                     vehicles.get(solution.vehicle).step = 0;
                 }
-                moveVehicles(vehicles);
-            }
+                moveVehicles(env, vehicles);
         }
     }
 }
