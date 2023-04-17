@@ -109,13 +109,17 @@ public class Genetic {
     public int pickVehicle(ArrayList<Vehicle> vehicles, Package pack){
         int i = 0, j = -1;
         int best = 240, newBest;
-        for(Vehicle v : vehicles) {
-            newBest = v.location.distance(pack.location);
-            if(best > newBest && (v.state == 0 || v.state == 2)){
-                best = newBest;
-                j = i;
+        if(vehicles.size() > 1){
+            for(Vehicle v : vehicles) {
+                newBest = v.location.distance(pack.location);
+                if(best > newBest && (v.state == 0 || v.state == 2) && v.carry > 0){
+                    best = newBest;
+                    j = i;
+                }
+                i++;
             }
-            i++;
+        }else {
+            j=0;
         }
         return j;
     }

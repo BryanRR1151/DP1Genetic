@@ -20,6 +20,7 @@ public class Vehicle {
     // 3 - Deshabilitado
     public int state;
     public int carry;
+    public Package pack;
     public Vehicle(String type){
         this.location = new Node();
         this.location.x = 0;
@@ -27,9 +28,17 @@ public class Vehicle {
         this.state = 0;
         this.step = 0;
         if(type == "Carro"){
-            this.carry = capacity1;
+            this.carry = 25;
         }else {
-            this.carry = capacity2;
+            this.carry = 4;
+        }
+    }
+
+    public void refill(){
+        if(type == "Carro"){
+            this.carry = 25;
+        }else {
+            this.carry = 4;
         }
     }
 }
