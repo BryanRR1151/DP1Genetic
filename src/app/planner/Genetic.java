@@ -14,6 +14,7 @@ public class Genetic {
     static final double MUTATE_CHANCE = 20;
     static final double IGNORE_CHANCE = 10;
     static ArrayList<Integer> list = new ArrayList<>(Arrays.asList(0, 1, 2, 3));
+    static Node destination;
     public boolean notBlocked(Environment env, Node from, Node to) {
         boolean valid = true;
         for(Blockage b : env.blockages) {
@@ -21,7 +22,7 @@ public class Genetic {
             //Es doble sentido
             //Si no esta, falso, se niega a verdadero
             //Si esta, verdadero, se niega a falso y se rompe la iteracion
-            valid = !((b.from.equals(from) && b.to.equals(to) || (b.from.equals(to) && b.to.equals(from))));
+            valid = !(b.node.equals(to)) || (to.equals(destination));
             if(!valid){
                 break;
             }
@@ -69,6 +70,9 @@ public class Genetic {
             valid = checkValid(env, node) && notBlocked(env, location, node) && (node.distance(to) < location.distance(to) || rand.nextInt(10000) < IGNORE_CHANCE*100);
             if(!valid){
                 newList.remove(i);
+                if(newList.size() == 0){
+                    newList = new ArrayList<>(list);
+                }
             }
         }
         return num;
@@ -225,6 +229,7 @@ public class Genetic {
     }
     public ArrayList<Solution> mutate (ArrayList<Solution> population, Environment env, Package pack){
         ArrayList<Solution> newPopulation = new ArrayList<>(population);
+        destination = pack.location;
         Solution newSolution;
         Node node;
         Random rand = new Random();

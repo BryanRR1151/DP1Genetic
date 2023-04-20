@@ -6,6 +6,7 @@ public class Node {
     public int x;
     public int y;
     public boolean state;
+    public boolean destination;
     public Node(){
 
     }
@@ -13,6 +14,7 @@ public class Node {
         this.x = n.x;
         this.y = n.y;
         this.state = n.state;
+        this.destination = n.destination;
     }
     public int distance(Node n) {
         int d = abs(this.x - n.x) + abs(this.y - n.y);

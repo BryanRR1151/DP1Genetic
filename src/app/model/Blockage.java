@@ -2,12 +2,10 @@ package app.model;
 
 public class Blockage {
     public int id;
-    public Node from;
-    public Node to;
+    public Node node;
     public int start;
     public int end;
     public Blockage() {
-        this.from = new Node();
-        this.to = new Node();
+        this.node = new Node();
     }
 }

@@ -17,13 +17,16 @@ public class Vehicle {
     public int carry;
     public Package pack;
     public int iPack;
+    public int turn;
+    public boolean moved;
     public Vehicle(String type){
         this.location = new Node();
-        this.location.x = 0;
-        this.location.y = 0;
+        this.location.x = 45;
+        this.location.y = 30;
         this.state = 0;
         this.step = 0;
         this.type = type;
+        this.moved = false;
         if(type.equals("Auto")){
             this.carry = 25;
             this.capacity = 25;
