@@ -13,6 +13,7 @@ public class Solution implements Comparable<Solution>{
     public ArrayList<Chrom> chroms;
     public int vehicle;
     public double fitness;
+    public boolean late = false;
     public Solution() {
         this.chroms = new ArrayList<>();
     }
@@ -21,12 +22,17 @@ public class Solution implements Comparable<Solution>{
         double cost = v.cost * this.chroms.size();
         double time = this.chroms.size() / v.speed / 60;
         int late = 0;
-        if(pack.deadline > currentTime + time){
+        int overtime = 0;
+        if((currentTime + time)/480 != vehicles.get(this.vehicle).turn){
+            overtime = (int)(currentTime + time) % 480;
+        }
+        if(pack.deadline < currentTime + time){
             late = 1;
+            this.late = true;
         }
         int carryOver = Integer.max(pack.demand - v.carry, 0);
         int excess = Integer.max(v.carry - pack.demand, 0);
-        this.fitness = cost * W_COST + late * W_LATE + carryOver * W_CYOVER + excess * W_EXCESS;
+        this.fitness = cost * W_COST + late * W_LATE + carryOver * W_CYOVER + excess * W_EXCESS + overtime * W_COST * 5;
         return this.fitness;
     }
     public boolean better(Solution sol) {

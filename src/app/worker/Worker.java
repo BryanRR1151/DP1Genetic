@@ -33,8 +33,8 @@ public class Worker {
             for(Vehicle v : vehicles){
                 if(v.state == 2 && v.plan == null){
                     p = new Package();
-                    p.location.x = 0;
-                    p.location.y = 0;
+                    p.location.x = 45;
+                    p.location.y = 30;
                     newVehicles = new ArrayList<>();
                     newVehicles.add(v);
                     v.plan = genetic.getBestRoute(env, newVehicles, p, env.time);
@@ -45,6 +45,11 @@ public class Worker {
         }
         for(Vehicle v : vehicles){
             if(v.state == 1 || v.state == 2) {
+                if(v.type.equals("Auto") && v.moved){
+                    v.moved = false;
+                    continue;
+                }
+                v.moved = true;
                 if(v.step < v.plan.chroms.size()){
                     switch (v.state){
                         case 1: state = "ENTREGANDO"; break;
@@ -67,14 +72,15 @@ public class Worker {
                         System.out.println(v.type + " #" + v.id + ": Llegó a su destino");
                         if(v.state != 2){
                             p = new Package();
-                            p.location.x = 0;
-                            p.location.y = 0;
+                            p.location.x = 45;
+                            p.location.y = 30;
                             v.pack = p;
                             newVehicles = new ArrayList<>();
                             newVehicles.add(v);
                             v.state = 2;
                             v.plan = genetic.getBestRoute(env, newVehicles, p, env.time);
                             v.step = 0;
+                            v.moved = false;
                         }else {
                             v.state = 0;
                         }
@@ -154,15 +160,13 @@ public class Worker {
                 String[] end = b[0].split("-")[1].split(":");
                 int tStart = Integer.parseInt(start[0]) * 60 + Integer.parseInt(start[1]);
                 int tEnd = Integer.parseInt(end[0]) * 60 + Integer.parseInt(end[1]);
-                for (int j = 1; j < b.length-2; j+=2) {
+                for (int j = 1; j < b.length-1; j+=2) {
                     Blockage blockage = new Blockage();
                     blockage.id = k;
                     blockage.start = tStart;
                     blockage.end = tEnd;
-                    blockage.from.x = Integer.parseInt(b[j]);
-                    blockage.from.y = Integer.parseInt(b[j+1]);
-                    blockage.to.x = Integer.parseInt(b[j+2]);
-                    blockage.to.y = Integer.parseInt(b[j+3]);
+                    blockage.node.x = Integer.parseInt(b[j]);
+                    blockage.node.y = Integer.parseInt(b[j+1]);
                     blockages.add(blockage);
                     k++;
                 }
@@ -186,13 +190,17 @@ public class Worker {
         ArrayList<Vehicle> newVehicles;
         for(Vehicle v : vehicles){
             if(v.state == 1 || v.state == 2){
-                newVehicles = new ArrayList<>();
-                newVehicles.add(v);
-                v.plan = gen.getBestRoute(env, newVehicles, v.pack, env.time);
-                if(env.time == 181){
-                    System.out.println();
+                for(Chrom c : v.plan.chroms){
+                    for(Blockage b : env.blockages){
+                        if(c.from.equals(b.node)){
+                            newVehicles = new ArrayList<>();
+                            newVehicles.add(v);
+                            v.plan = gen.getBestRoute(env, newVehicles, v.pack, env.time);
+                            v.step = 0;
+                            v.moved = false;
+                        }
+                    }
                 }
-                v.step = 0;
             }
         }
     }
@@ -209,12 +217,34 @@ public class Worker {
                 System.out.println("Terminó el bloqueo " + env.blockList.get(i).id);
                 removeBlockage(env, env.blockList.get(i).id);
                 env.blockList.remove(i);
+                i--;
                 update = true;
             }
         }
         if(update){
             System.out.println("Replanificando...");
             restartAll(env, packages, vehicles);
+        }
+    }
+    public void killVehicle(Environment env, ArrayList<Package> packages, ArrayList<Vehicle> vehicles){
+        for(Vehicle v : vehicles){
+            if(v.state == 1){
+                v.location.x = 45;
+                v.location.y = 30;
+                packages.get(v.iPack).fullfilled -= v.carry;
+                packages.get(v.iPack).unassigned += v.carry;
+                packages.get(v.iPack).time = env.time;
+                v.state = 3;
+                System.out.println(v.type + " #" + v.id + " averiado, reasignando...");
+                break;
+            }
+        }
+    }
+    public void repairVehicles(ArrayList<Vehicle> vehicles){
+        for(Vehicle v : vehicles){
+            if(v.state == 3){
+                v.state = 0;
+            }
         }
     }
     public void Simulate(){
@@ -262,16 +292,28 @@ public class Worker {
                 env.time = i;
                 System.out.println("Son las " + timeString(i));
                 checkBlockage(env, packages, vehicles);
+                if(i % 480 == 0){
+                    repairVehicles(vehicles);
+                }
+                if(i == 15){
+                    System.out.println("Explotando un vehiculo...");
+                    killVehicle(env, packages, vehicles);
+                }
                 list = checkPackage(packages, i);
                 for(int x=0; x < list.size(); x++) {
                     System.out.println("Se recibio un pedido");
                     solution = genetic.getBestRoute(env, vehicles, packages.get(list.get(x)), i);
+                    if(solution.late){
+                        System.out.println("Colapso Logístico");
+                        return;
+                    }
                     System.out.println("Se encontro una solucion de " + solution.chroms.size() + " pasos");
                     vehicles.get(solution.vehicle).plan = solution;
                     vehicles.get(solution.vehicle).state = 1;
                     vehicles.get(solution.vehicle).step = 0;
                     vehicles.get(solution.vehicle).pack = new Package(packages.get(list.get(x)));
                     vehicles.get(solution.vehicle).iPack = x;
+                    vehicles.get(solution.vehicle).turn = i / 480;
                     vehicles.get(solution.vehicle).carry = Integer.min(vehicles.get(solution.vehicle).capacity, packages.get(list.get(x)).demand);
                     packages.get(list.get(x)).unassigned -= vehicles.get(solution.vehicle).carry;
                     if(packages.get(list.get(x)).unassigned > 0){
