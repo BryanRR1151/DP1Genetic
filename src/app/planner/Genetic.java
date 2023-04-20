@@ -31,6 +31,7 @@ public class Genetic {
         for(Node n : env.nodes){
             if(node.equals(n)){
                 valid = true;
+                break;
             }
         }
         return valid;
@@ -38,10 +39,14 @@ public class Genetic {
     public int rollValidMove(Environment env, Node location, Node to){
         Random rand = new Random();
         Node node;
+        ArrayList<Integer> list = new ArrayList<>();
+        for(int i=0; i<4; i++){
+            list.add(i);
+        }
         boolean valid = false;
         int num = -1;
         while (!valid){
-            num = rand.nextInt(4);
+            num = list.get(rand.nextInt(list.size()));
             node = new Node(location);
             switch (num) {
                 case 0: { //Derecha
@@ -62,6 +67,9 @@ public class Genetic {
                 }
             }
             valid = checkValid(env, node) && notBlocked(env, location, node) && (node.distance(to) < location.distance(to) || rand.nextInt(10000) < IGNORE_CHANCE*100);
+            if(!valid){
+                //list.remove(num);
+            }
         }
         return num;
     }
@@ -106,29 +114,30 @@ public class Genetic {
         }
         return solution;
     }
-    public int pickVehicle(ArrayList<Vehicle> vehicles, Package pack){
-        int i = 0, j = -1;
-        int best = 240, newBest;
+    public int pickVehicle(ArrayList<Vehicle> vehicles){
+        Random rand = new Random();
+        ArrayList<Vehicle> newVehicles = new ArrayList<>(vehicles);
+        int i;
         if(vehicles.size() > 1){
-            for(Vehicle v : vehicles) {
-                newBest = v.location.distance(pack.location);
-                if(best > newBest && (v.state == 0 || v.state == 2) && v.carry > 0){
-                    best = newBest;
-                    j = i;
+            while (true){
+                i = rand.nextInt(newVehicles.size());
+                if(newVehicles.get(i).state == 0){
+                    break;
+                }else {
+                    newVehicles.remove(i);
                 }
-                i++;
             }
         }else {
-            j=0;
+            i=0;
         }
-        return j;
+        return i;
     }
     public ArrayList<Solution> initPopulation(Environment env, ArrayList<Vehicle> vehicles, Package pack){
         ArrayList<Solution> population = new ArrayList<>();
         Solution solution;
         int i, v;
-        v = pickVehicle(vehicles, pack);
         for(i=0; i < POPULATION; i++){
+            v = pickVehicle(vehicles);
             solution = getNewSolution(env, vehicles.get(v).location, pack.location);
             solution.vehicle = v;
             population.add(solution);
@@ -209,8 +218,7 @@ public class Genetic {
         return i;
     }
     public ArrayList<Solution> mutate (ArrayList<Solution> population, Environment env, Package pack){
-        ArrayList<Solution> newPopulation = new ArrayList<>();
-        newPopulation.addAll(population);
+        ArrayList<Solution> newPopulation = new ArrayList<>(population);
         Solution newSolution;
         Node node;
         Random rand = new Random();
@@ -229,11 +237,13 @@ public class Genetic {
     }
     public ArrayList<Solution> getParents (ArrayList<Solution> population){
         Collections.sort(population);
-        ArrayList<Solution> parents = new ArrayList<>();
-        parents.addAll(population.subList(0, PARENTS));
+        ArrayList<Solution> parents = new ArrayList<>(population.subList(0, PARENTS));
         return parents;
     }
-    public Solution getBestRoute(Environment env, ArrayList<Vehicle> vehicles, Package pack) {
+    public Solution getBestRoute(Environment env, ArrayList<Vehicle> vehicles, Package pack, int minute) {
+        Solution.vehicles = vehicles;
+        Solution.pack = pack;
+        Solution.currentTime = minute;
         ArrayList<Solution> parents;
         ArrayList<Solution> newPopulation;
         Solution newBest;
