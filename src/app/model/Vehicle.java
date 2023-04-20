@@ -1,14 +1,9 @@
 package app.model;
 
 public class Vehicle {
-    public static int quantity1;
-    public static int quantity2;
-    public static double speed1;
-    public static double speed2;
-    public static double cost1;
-    public static double cost2;
-    public static int capacity1;
-    public static int capacity2;
+    public double speed;
+    public double cost;
+    public int capacity;
     public int id;
     public String type;
     public Node location;
@@ -27,18 +22,21 @@ public class Vehicle {
         this.location.y = 0;
         this.state = 0;
         this.step = 0;
-        if(type == "Carro"){
+        this.type = type;
+        if(type.equals("Auto")){
             this.carry = 25;
+            this.capacity = 25;
+            this.cost = 20;
+            this.speed = 30;
         }else {
             this.carry = 4;
+            this.capacity = 4;
+            this.cost = 100;
+            this.speed = 60;
         }
     }
 
     public void refill(){
-        if(type == "Carro"){
-            this.carry = 25;
-        }else {
-            this.carry = 4;
-        }
+        this.carry = this.capacity;
     }
 }

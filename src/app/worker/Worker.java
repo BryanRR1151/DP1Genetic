@@ -25,7 +25,6 @@ public class Worker {
     public void moveVehicles(Environment env, ArrayList<Vehicle> vehicles){
         Genetic genetic = new Genetic();
         ArrayList<Vehicle> newVehicles;
-        Node start;
         String state = "";
         for(Vehicle v : vehicles){
             if(v.state == 1 || v.state == 2) {
@@ -48,7 +47,7 @@ public class Worker {
                             newVehicles = new ArrayList<>();
                             newVehicles.add(v);
                             v.state = 2;
-                            v.plan = genetic.getBestRoute(env, newVehicles, p);
+                            v.plan = genetic.getBestRoute(env, newVehicles, p, env.time);
                             v.step = 0;
                         }else {
                             v.refill();
@@ -106,9 +105,6 @@ public class Worker {
                 String[] v = vehicleStr.split(",");
                 Vehicle vehicle = new Vehicle(v[3]);
                 vehicle.id = Integer.parseInt(v[0]);
-                vehicle.state = 0;
-                vehicle.type = v[3];
-                vehicle.carry = Integer.parseInt(v[1]);
                 vehicles.add(vehicle);
             }
             scan.close();
@@ -141,14 +137,11 @@ public class Worker {
         return blockages;
     }
     public String timeString(int minutes) {
-        String time = String.format("%02d", (minutes/60) % 24) + ":" + String.format("%02d", minutes % 60);
-        return time;
+        return String.format("%02d", (minutes/60) % 24) + ":" + String.format("%02d", minutes % 60);
     }
     public void Simulate(){
         Environment env = new Environment();
         Genetic genetic = new Genetic();
-        Vehicle.capacity1 = 40;
-        Vehicle.speed2 = 30;
         env.date = "15/04/23";
         env.time = 0;
         Node node;
@@ -187,12 +180,13 @@ public class Worker {
             System.exit(0);
         }
         //Esto esta simulando un dia
-        for (i=0; i<DIA * 1.07; i++){
+        for (i=0; i<DIA * 1.09; i++){
+                env.time = i;
                 System.out.println("Son las " + timeString(i));
                 list = checkPackage(packages, i);
                 for(int x=0; x < list.size(); x++) {
                     System.out.println("Se recibio un pedido");
-                    solution = genetic.getBestRoute(env, vehicles, packages.get(list.get(x)));
+                    solution = genetic.getBestRoute(env, vehicles, packages.get(list.get(x)), i);
                     System.out.println("Se encontro una solucion de " + solution.chroms.size() + " pasos");
                     vehicles.get(solution.vehicle).plan = solution;
                     vehicles.get(solution.vehicle).state = 1;
