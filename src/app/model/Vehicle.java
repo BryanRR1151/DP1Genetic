@@ -16,6 +16,7 @@ public class Vehicle {
     public int state;
     public int carry;
     public Package pack;
+    public int iPack;
     public Vehicle(String type){
         this.location = new Node();
         this.location.x = 0;

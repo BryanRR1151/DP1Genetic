@@ -3,6 +3,7 @@ package app.planner;
 import app.model.*;
 import app.model.Package;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 
@@ -12,6 +13,7 @@ public class Genetic {
     static final int PARENTS = POPULATION*50/100;
     static final double MUTATE_CHANCE = 20;
     static final double IGNORE_CHANCE = 10;
+    static ArrayList<Integer> list = new ArrayList<>(Arrays.asList(0, 1, 2, 3));
     public boolean notBlocked(Environment env, Node from, Node to) {
         boolean valid = true;
         for(Blockage b : env.blockages) {
@@ -39,14 +41,12 @@ public class Genetic {
     public int rollValidMove(Environment env, Node location, Node to){
         Random rand = new Random();
         Node node;
-        ArrayList<Integer> list = new ArrayList<>();
-        for(int i=0; i<4; i++){
-            list.add(i);
-        }
+        ArrayList<Integer> newList = new ArrayList<>(list);
         boolean valid = false;
-        int num = -1;
+        int num = -1, i;
         while (!valid){
-            num = list.get(rand.nextInt(list.size()));
+            i = rand.nextInt(newList.size());
+            num = newList.get(i);
             node = new Node(location);
             switch (num) {
                 case 0: { //Derecha
@@ -68,7 +68,7 @@ public class Genetic {
             }
             valid = checkValid(env, node) && notBlocked(env, location, node) && (node.distance(to) < location.distance(to) || rand.nextInt(10000) < IGNORE_CHANCE*100);
             if(!valid){
-                //list.remove(num);
+                newList.remove(i);
             }
         }
         return num;
@@ -121,7 +121,7 @@ public class Genetic {
         if(vehicles.size() > 1){
             while (true){
                 i = rand.nextInt(newVehicles.size());
-                if(newVehicles.get(i).state == 0){
+                if(newVehicles.get(i).state == 0 || (newVehicles.get(i).state == 2 && newVehicles.get(i).carry > 0)){
                     break;
                 }else {
                     newVehicles.remove(i);
@@ -159,20 +159,26 @@ public class Genetic {
         Solution child1 = new Solution();
         Solution child2 = new Solution();
         int i, j, fsize =father.chroms.size(), msize =mother.chroms.size();
-        for(i=1; i < fsize - 1; i++){
-            for(j=1; j < msize - 1; j++){
-                if(father.chroms.get(i).to.equals(mother.chroms.get(j).to) && father.chroms.get(i).from.equals(mother.chroms.get(j).from)){
-                    child1.chroms.addAll(father.chroms.subList(0, i));
-                    child1.chroms.addAll(mother.chroms.subList(j, msize));
-                    child1.vehicle = father.vehicle;
-                    child2.chroms.addAll(mother.chroms.subList(0, j));
-                    child2.chroms.addAll(father.chroms.subList(i, fsize));
-                    child2.vehicle = father.vehicle;
-                    children.add(child1);
-                    children.add(child2);
-                    return children;
+        if(fsize > 2 && msize > 2){
+            for(i=1; i < fsize - 1; i++){
+                for(j=1; j < msize - 1; j++){
+                    if(father.chroms.get(i).to.equals(mother.chroms.get(j).to) && father.chroms.get(i).from.equals(mother.chroms.get(j).from)){
+                        child1.chroms.addAll(father.chroms.subList(0, i));
+                        child1.chroms.addAll(mother.chroms.subList(j, msize));
+                        child1.vehicle = father.vehicle;
+                        child2.chroms.addAll(mother.chroms.subList(0, j));
+                        child2.chroms.addAll(father.chroms.subList(i, fsize));
+                        child2.vehicle = father.vehicle;
+                        children.add(child1);
+                        children.add(child2);
+                        return children;
+                    }
                 }
             }
+        }else {
+            children.add(father);
+            children.add(mother);
+            return children;
         }
         return null;
     }
@@ -225,12 +231,14 @@ public class Genetic {
         int i;
         for(Solution s : newPopulation){
             if(rand.nextInt(10000) < 100 * MUTATE_CHANCE){
-                newSolution = new Solution();
-                i = rollValidIndex(s.chroms.size());
-                newSolution.chroms.addAll(s.chroms.subList(0, i));
-                node = new Node(newSolution.chroms.get(i-1).to);
-                newSolution.chroms.addAll(getNewSolution(env, node, pack.location).chroms);
-                newSolution.vehicle = s.vehicle;
+                if(s.chroms.size() > 2){
+                    newSolution = new Solution();
+                    i = rollValidIndex(s.chroms.size());
+                    newSolution.chroms.addAll(s.chroms.subList(0, i));
+                    node = new Node(newSolution.chroms.get(i-1).to);
+                    newSolution.chroms.addAll(getNewSolution(env, node, pack.location).chroms);
+                    newSolution.vehicle = s.vehicle;
+                }
             }
         }
         return newPopulation;
