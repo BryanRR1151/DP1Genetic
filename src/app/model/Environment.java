@@ -3,6 +3,7 @@ import java.util.ArrayList;
 
 public class Environment {
     public ArrayList<Node> nodes;
+    public ArrayList<Blockage> blockList;
     public ArrayList<Blockage> blockages;
     public String date;
     public int time;
