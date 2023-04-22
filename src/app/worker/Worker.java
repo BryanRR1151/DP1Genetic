@@ -158,8 +158,8 @@ public class Worker {
                 String[] b = blockStr.split(",");
                 String[] start = b[0].split("-")[0].split(":");
                 String[] end = b[0].split("-")[1].split(":");
-                int tStart = Integer.parseInt(start[0]) * 60 + Integer.parseInt(start[1]);
-                int tEnd = Integer.parseInt(end[0]) * 60 + Integer.parseInt(end[1]);
+                int tStart = (Integer.parseInt(start[0]) - 1) * 1440 + Integer.parseInt(start[1]) * 60 + Integer.parseInt(start[2]);
+                int tEnd = (Integer.parseInt(end[0]) - 1) * 1440 + Integer.parseInt(end[1]) * 60 + Integer.parseInt(end[2]);
                 for (int j = 1; j < b.length-1; j+=2) {
                     Blockage blockage = new Blockage();
                     blockage.id = k;
