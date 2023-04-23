@@ -126,6 +126,7 @@ public class Genetic {
             while (true){
                 i = rand.nextInt(newVehicles.size());
                 if(newVehicles.get(i).state == 0 || (newVehicles.get(i).state == 2 && newVehicles.get(i).carry > 0)){
+                    i = newVehicles.get(i).id - 1;
                     break;
                 }else {
                     newVehicles.remove(i);
