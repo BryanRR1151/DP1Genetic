@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class Solution implements Comparable<Solution>{
     static final double W_COST = 0.5;
     static final int W_LATE = Integer.MAX_VALUE;
-    static final double W_CYOVER = 1000;
+    static final double W_CYOVER = 10000;
     static final double W_EXCESS = 10;
     public static ArrayList<Vehicle> vehicles;
     public static Package pack;
@@ -20,7 +20,7 @@ public class Solution implements Comparable<Solution>{
     public double fitness() {
         Vehicle v = vehicles.get(this.vehicle);
         double cost = v.cost * this.chroms.size();
-        double time = this.chroms.size() / v.speed / 60;
+        double time = this.chroms.size() / v.speed * 60;
         int late = 0;
         int overtime = 0;
         if((currentTime + time)/480 != vehicles.get(this.vehicle).turn){
@@ -30,8 +30,8 @@ public class Solution implements Comparable<Solution>{
             late = 1;
             this.late = true;
         }
-        int carryOver = Integer.max(pack.demand - v.carry, 0);
-        int excess = Integer.max(v.carry - pack.demand, 0);
+        int carryOver = Integer.max(pack.unassigned - v.carry, 0);
+        int excess = Integer.max(v.carry - pack.unassigned, 0);
         this.fitness = cost * W_COST + late * W_LATE + carryOver * W_CYOVER + excess * W_EXCESS + overtime * W_COST * 5;
         return this.fitness;
     }
