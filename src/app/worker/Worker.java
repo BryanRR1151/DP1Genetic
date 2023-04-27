@@ -11,10 +11,8 @@ import java.util.Scanner;
 
 public class Worker {
     static final int DIA = 1440;
-    boolean reset = false;
     Genetic gen = new Genetic();
     ArrayList<Integer> times = new ArrayList<>();
-    int broken = 0;
     public ArrayList<Integer> checkPackage(ArrayList<Package> packages, int minutes){
         ArrayList<Integer> list = new ArrayList<>();
         int i = 0;
@@ -45,20 +43,6 @@ public class Worker {
         String state = "";
         Package p;
         int ipack;
-        if(reset){
-            for(Vehicle v : vehicles){
-                if(v.state == 2 && v.plan == null){
-                    p = new Package();
-                    p.location.x = 45;
-                    p.location.y = 30;
-                    newVehicles = new ArrayList<>();
-                    newVehicles.add(v);
-                    v.plan = genetic.getBestRoute(env, newVehicles, p, env.time);
-                    v.step = 0;
-                }
-            }
-            reset = false;
-        }
         for(Vehicle v : vehicles){
             if(v.state == 1 || v.state == 2) {
                 if(v.type.equals("Auto") && v.moved){
@@ -79,16 +63,18 @@ public class Worker {
                         ipack = findPackage(packages, v.pack.idCustomer);
                         packages.get(ipack).fullfilled += v.carry;
                         if(packages.get(ipack).fullfilled >= v.pack.demand && v.state == 1){
-                            times.add(env.time - packages.get(ipack).originalTime);
+                            times.add(packages.get(ipack).deadline - env.time);
+                            System.out.println("Pedido #" + packages.get(ipack).idCustomer + " completado");
                             packages.remove(ipack);
                         }
                         v.carry = 0;
                         System.out.println(v.type + " #" + v.id + ": Llegó a su destino");
-                        if(v.state != 2){
+                        if(v.state == 1){
                             p = new Package();
                             p.location.x = 45;
                             p.location.y = 30;
                             v.pack = p;
+                            v.iPack = 0;
                             newVehicles = new ArrayList<>();
                             newVehicles.add(v);
                             v.state = 2;
@@ -96,7 +82,11 @@ public class Worker {
                             v.step = 0;
                             v.moved = false;
                         }else {
+                            v.plan = null;
+                            v.pack = null;
+                            v.iPack = 0;
                             v.state = 0;
+                            v.moved = false;
                         }
                     }
                 }
@@ -109,6 +99,7 @@ public class Worker {
         ArrayList<Package> packages = new ArrayList<>();
         inputDirectory = new File(System.getProperty("user.dir") + "/input/packages");
         String[] inputFiles = inputDirectory.list((dir, name) -> new File(dir, name).isFile());
+        int j = 0;
         for (int i = 0; i < inputFiles.length; i++) {
             File file = new File(inputDirectory + "/" + inputFiles[i]);
             Scanner scan = new Scanner(file);
@@ -132,9 +123,10 @@ public class Worker {
                 pack.demand = demand;
                 pack.unassigned = demand;
                 pack.fullfilled = 0;
-                pack.idCustomer = idCustomer;
+                pack.idCustomer = j;
                 pack.originalTime = startDate;
                 packages.add(pack);
+                j++;
             }
             scan.close();
         }
@@ -264,19 +256,26 @@ public class Worker {
         }
     }
     public void killVehicle(Environment env, ArrayList<Package> packages, ArrayList<Vehicle> vehicles, int type){
-        int ipack = 0;
+        int ipack;
         for(Vehicle v : vehicles){
             if(v.state == 1){
                 v.location.x = 45;
                 v.location.y = 30;
-                ipack = findPackage(packages, v.iPack);
+                ipack = findPackage(packages, v.pack.idCustomer);
+                if(packages.get(ipack).idCustomer != v.iPack){
+                    ipack = ipack;
+                }
                 packages.get(ipack).unassigned += v.carry;
                 packages.get(ipack).time = env.time;
                 v.state = type;
-                System.out.println(v.type + " #" + v.id + " averiado, reasignando...");
+                v.iPack = 0;
+                v.pack = null;
+                v.plan = null;
+                v.step = 0;
+                v.moved = false;
+                System.out.println(v.type + " #" + v.id + " averiado, reasignando el Pedido #" + packages.get(ipack).idCustomer);
                 break;
             }
-            broken++;
         }
     }
     public void repairVehicles(ArrayList<Vehicle> vehicles){
@@ -291,6 +290,16 @@ public class Worker {
             switch (v.state){
                 case 4: v.state = 5; break;
                 case 5: v.state = 0; break;
+            }
+        }
+    }
+    public void wipeAll(ArrayList<Vehicle> vehicles){
+        for(Vehicle v: vehicles){
+            if(v.state != 1 && v.state != 2){
+                v.plan = null;
+                v.pack = null;
+                v.step = 0;
+                v.iPack = 0;
             }
         }
     }
@@ -345,16 +354,19 @@ public class Worker {
         }
         boolean first = true;
         //Esto esta simulando un dia
-        for (i=0; i<DIA * 2.09; i++){
+        for (i=0; i<DIA * 30; i++){
                 env.time = i;
                 if(i%DIA == 0 && !first){
+                    wipeAll(vehicles);
                     buyVehicle(vehicles);
-                    System.out.println("Es el dia " + i/DIA);
+                    System.out.println("Es el dia " + i/DIA + 1);
                     for(Package p : init){
-                        p.idCustomer *= 1.5;
+                        p.idCustomer += 150;
                         p.time += DIA;
                         p.deadline += DIA;
                         p.originalTime += DIA;
+                        p.fullfilled = 0;
+                        p.unassigned = p.demand;
                     }
                     for(int k = 0; k < faults.size() - 1; k += 2){
                         faults.set(k, faults.get(k) + DIA);
@@ -369,7 +381,7 @@ public class Worker {
                 }
                 for(int k = 0; k < faults.size() - 1; k += 2){
                     if(faults.get(k) == i){
-                        //killVehicle(env, packages, vehicles, faults.get(k + 1));
+                        killVehicle(env, packages, vehicles, faults.get(k + 1));
                     }
                 }
                 list = checkPackage(packages, i);
@@ -400,6 +412,6 @@ public class Worker {
             sum += t;
         }
         sum = sum/times.size();
-        System.out.println("El promedio de entrega de un pedido es: " + sum);
+        System.out.println("En promedio, el tiempo restante por pedido es: " + sum);
     }
 }
